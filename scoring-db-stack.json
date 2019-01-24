@@ -1,0 +1,635 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "Autodesk Scoring API Stack",
+
+	"Parameters": {
+
+		"Environment": {
+			"Description": "DEV/INT/STG/PRD",
+			"Type": "String",
+			"Default": "DEV",
+			"AllowedValues": ["DEV","INT","STG","PRD"]
+		}
+	},
+
+	"Mappings" : {
+		"Environments" : {
+			"DEV" : {
+				"ewsDetailsDb" : "s3://com.autodesk.adp.stg.us-west-1.grn/temp_notebook/account_health_ews_detail_sample_uuid",
+				"ewsSummaryDb" : "s3://com.autodesk.adp.stg.us-west-1.grn/temp_notebook/account_health_ews_summary_sample_uuid",
+				"mauDetailsDb" : "s3://com.autodesk.adp.stg.us-west-1.grn/optimized/desktop_product_usage/monthly_active_users_by_site_account",
+				"mauSummaryDb" : "s3://com.autodesk.adp.stg.us-west-1.grn/optimized/desktop_product_usage/monthly_active_users_by_parent_account",
+				"npsDetailsDb" : "s3://com.autodesk.adp.stg.us-west-1.grn/temp_notebook/account_health_nps_detail_sample",
+				"npsSummaryDb" : "s3://com.autodesk.adp.stg.us-west-1.grn/temp_notebook/account_health_nps_summary_sample"
+			},
+			"INT" : {
+				"ewsDetailsDb" : "s3://com.autodesk.adp.stg.us-west-1.grn/temp_notebook/account_health_ews_detail_sample_uuid",
+				"ewsSummaryDb" : "s3://com.autodesk.adp.stg.us-west-1.grn/temp_notebook/account_health_ews_summary_sample_uuid",
+				"mauDetailsDb" : "s3://com.autodesk.adp.stg.us-west-1.grn/optimized/desktop_product_usage/monthly_active_users_by_site_account",
+				"mauSummaryDb" : "s3://com.autodesk.adp.stg.us-west-1.grn/optimized/desktop_product_usage/monthly_active_users_by_parent_account",
+				"npsDetailsDb" : "s3://com.autodesk.adp.stg.us-west-1.grn/temp_notebook/account_health_nps_detail_sample",
+				"npsSummaryDb" : "s3://com.autodesk.adp.stg.us-west-1.grn/temp_notebook/account_health_nps_summary_sample"
+			},
+			"STG" : {
+				"ewsDetailsDb" : "s3://com.autodesk.dap.stg.us-east-1.enrichment/export/Salesforce/temp_notebook/account_health_ews_detail_sample_uuid",
+				"ewsSummaryDb" : "s3://com.autodesk.dap.stg.us-east-1.enrichment/export/Salesforce/temp_notebook/account_health_ews_summary_sample_uuid",
+				"mauDetailsDb" : "s3://com.autodesk.dap.stg.us-east-1.enrichment/export/Salesforce/optimized/desktop_product_usage/monthly_active_users_by_site_account",
+				"mauSummaryDb" : "s3://com.autodesk.dap.stg.us-east-1.enrichment/export/Salesforce/optimized/desktop_product_usage/monthly_active_users_by_parent_account",
+				"npsDetailsDb" : "s3://com.autodesk.dap.stg.us-east-1.enrichment/export/Salesforce/temp_notebook/account_health_nps_detail_sample",
+				"npsSummaryDb" : "s3://com.autodesk.dap.stg.us-east-1.enrichment/export/Salesforce/temp_notebook/account_health_nps_summary_sample"
+			},
+			"PRD" : {
+				"ewsDetailsDb" : "s3://com.autodesk.dap.prd.us-east-1.enrichment/export/Salesforce/optimized/account/account_health_ews_detail",
+				"ewsSummaryDb" : "s3://com.autodesk.dap.prd.us-east-1.enrichment/export/Salesforce/optimized/account/account_health_ews_detail",
+				"mauDetailsDb" : "s3://com.autodesk.dap.prd.us-east-1.enrichment/export/Salesforce/optimized/desktop_product_usage/monthly_active_users_by_site_account",
+				"mauSummaryDb" : "s3://com.autodesk.dap.prd.us-east-1.enrichment/export/Salesforce/optimized/desktop_product_usage/monthly_active_users_by_parent_account",
+				"npsDetailsDb" : "s3://com.autodesk.dap.prd.us-east-1.enrichment/export/Salesforce/optimized/account/account_health_nps_detail",
+				"npsSummaryDb" : "s3://com.autodesk.dap.prd.us-east-1.enrichment/export/Salesforce/optimized/account/account_health_nps_summary"
+			}
+		}
+	},
+
+	"Resources": {
+		"ScoresDatabaseNPS": {
+			"Type": "AWS::Glue::Database",
+			"Properties": {
+				"CatalogId": {
+						"Ref": "AWS::AccountId"
+					},
+				"DatabaseInput": {
+					"Name": "nps",
+					"Description": "Database to hold tables for NPS data"
+				}
+			}
+		},
+		"NPSDetailsTable": {
+		"DependsOn": "ScoresDatabaseNPS",
+				"Type": "AWS::Glue::Table",
+				"Properties": {
+					"TableInput": {
+						"TableType": "EXTERNAL_TABLE",
+						"Name": "nps_details",
+						"Parameters": {
+					"classification": "parquet"
+				},
+				"StorageDescriptor": {
+						"OutputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat",
+						"Columns": [
+							{
+								"Name":"corporate_parent_name_static",
+								"Type": "string"
+							},
+							{
+								"Name":"corporate_parent_uuid_csn_static",
+								"Type": "string"
+							},
+							{
+								"Name":"response_dt",
+								"Type": "string"
+							},
+							{
+								"Name":"user_id",
+								"Type": "string"
+							},
+							{
+								"Name":"user_name",
+								"Type": "string"
+							},
+							{
+								"Name":"nps_score",
+								"Type": "string"
+							},
+							{
+								"Name":"nps_group",
+								"Type": "string"
+							},
+							{
+								"Name":"survey_response",
+								"Type": "string"
+							},
+							{
+								"Name":"dt",
+								"Type": "string"
+							}
+						],
+						"InputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat",
+						"Location": {"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "npsDetailsDb"]},
+						"SerdeInfo": {
+							"Parameters": {
+								"serialization.format": 1
+							},
+							"SerializationLibrary": "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+						}
+					}
+					},
+					"DatabaseName": {
+						"Ref": "ScoresDatabaseNPS"
+					},
+					"CatalogId": {
+						"Ref": "AWS::AccountId"
+					}
+				}
+			},
+			"NPSSummaryTable": {
+		"DependsOn": "ScoresDatabaseNPS",
+				"Type": "AWS::Glue::Table",
+				"Properties": {
+					"TableInput": {
+						"TableType": "EXTERNAL_TABLE",
+						"Name": "nps_summary",
+						"Parameters": {
+					"classification": "parquet"
+				},
+				"StorageDescriptor": {
+						"OutputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat",
+						"Columns": [
+							{
+								"Name":"corporate_parent_uuid_csn_static",
+								"Type": "string"
+							},
+							{
+								"Name":"total_seats",
+								"Type": "bigint"
+							},
+							{
+								"Name":"total_sites",
+								"Type": "bigint"
+							},
+							{
+								"Name":"total_contracts",
+								"Type": "bigint"
+							},
+							{
+								"Name":"total_detractors",
+								"Type": "bigint"
+							},
+							{
+								"Name":"total_passives",
+								"Type": "bigint"
+							},
+							{
+								"Name":"total_promoters",
+								"Type": "bigint"
+							},
+							{
+								"Name":"total_responses",
+								"Type": "bigint"
+							},
+							{
+								"Name":"percent_detractor",
+								"Type": "double"
+							},
+							{
+								"Name":"percent_passive",
+								"Type": "double"
+							},
+							{
+								"Name":"percent_promoter",
+								"Type": "double"
+							},
+							{
+								"Name":"nps_score",
+								"Type": "bigint"
+							},
+							{
+								"Name":"dt",
+								"Type": "string"
+							}
+						],
+						"InputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat",
+						"Location": { "Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "npsSummaryDb"] },
+						"SerdeInfo": {
+							"Parameters": {
+								"serialization.format": 1
+							},
+							"SerializationLibrary": "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+						}
+					}
+					},
+					"DatabaseName": {
+						"Ref": "ScoresDatabaseNPS"
+					},
+					"CatalogId": {
+						"Ref": "AWS::AccountId"
+					}
+				}
+			},
+		"ScoresDatabaseEWS": {
+			"Type": "AWS::Glue::Database",
+			"Properties": {
+				"CatalogId": {
+						"Ref": "AWS::AccountId"
+					},
+				"DatabaseInput": {
+					"Name": "ews",
+					"Description": "Database to hold tables for EWS data"
+				}
+			}
+		},
+		"EWSDetailsTable": {
+		"DependsOn": "ScoresDatabaseEWS",
+				"Type": "AWS::Glue::Table",
+				"Properties": {
+					"TableInput": {
+						"TableType": "EXTERNAL_TABLE",
+						"Name": "ews_details",
+						"Parameters": {
+					"classification": "parquet"
+				},
+				"StorageDescriptor": {
+						"OutputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat",
+						"Columns": [
+							{
+								"Name":"corporate_parent_name_static",
+								"Type": "string"
+							},
+							{
+								"Name":"corporate_parent_uuid_csn_static",
+								"Type": "string"
+							},
+							{
+								"Name":"site_name",
+								"Type": "string"
+							},
+							{
+								"Name":"site_uuid_csn",
+								"Type": "string"
+							},
+							{
+								"Name":"corporate_parent_named_account_group_static",
+								"Type": "string"
+							},
+							{
+								"Name":"contract_id",
+								"Type": "string"
+							},
+							{
+								"Name":"corporate_industry_segment_static",
+								"Type": "string"
+							},
+							{
+								"Name":"corporate_industry_group_static",
+								"Type": "string"
+							},
+							{
+								"Name":"site_country",
+								"Type": "string"
+							},
+							{
+								"Name":"site_geo",
+								"Type": "string"
+							},
+							{
+								"Name":"retentionscore_calculated",
+								"Type": "string"
+							},
+							{
+								"Name":"adoptionscore_calculated",
+								"Type": "string"
+							},
+							{
+								"Name":"onboardingscore_calculated",
+								"Type": "string"
+							},
+							{
+								"Name":"seats",
+								"Type": "int"
+							},
+							{
+								"Name":"retention_score",
+								"Type": "string"
+							},
+							{
+								"Name":"adoption_score",
+								"Type": "string"
+							},
+							{
+								"Name":"onboarding_score",
+								"Type": "string"
+							},
+							{
+								"Name":"dt",
+								"Type": "string"
+							}
+						],
+						"InputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat",
+						"Location": { "Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "ewsDetailsDb"] },
+						"SerdeInfo": {
+							"Parameters": {
+								"serialization.format": 1
+							},
+							"SerializationLibrary": "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+						}
+					}
+					},
+					"DatabaseName": {
+						"Ref": "ScoresDatabaseEWS"
+					},
+					"CatalogId": {
+						"Ref": "AWS::AccountId"
+					}
+				}
+			},
+			"EWSSummaryTable": {
+		"DependsOn": "ScoresDatabaseEWS",
+				"Type": "AWS::Glue::Table",
+				"Properties": {
+					"TableInput": {
+						"TableType": "EXTERNAL_TABLE",
+						"Name": "ews_summary",
+						"Parameters": {
+					"classification": "parquet"
+				},
+				"StorageDescriptor": {
+						"OutputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat",
+						"Columns": [
+							{
+								"Name":"corporate_parent_name_static",
+								"Type": "string"
+							},
+							{
+								"Name":"corporate_parent_uuid_csn_static",
+								"Type": "string"
+							},
+							{
+								"Name":"retention_health_indicator",
+								"Type": "string"
+							},
+							{
+								"Name":"adoption_health_indicator",
+								"Type": "string"
+							},
+							{
+								"Name":"onboarding_health_indicator",
+								"Type": "string"
+							},
+							{
+								"Name":"total_seats",
+								"Type": "int"
+							},
+							{
+								"Name":"total_contracts",
+								"Type": "int"
+							},
+							{
+								"Name":"total_sites",
+								"Type": "int"
+							},
+							{
+								"Name":"seats_by_health_retention",
+								"Type": "int"
+							},
+							{
+								"Name":"seats_by_health_adoption",
+								"Type": "int"
+							},
+							{
+								"Name":"seats_by_health_onboarding",
+								"Type": "int"
+							},
+							{
+								"Name":"retention_seats_percent",
+								"Type": "int"
+							},
+							{
+								"Name":"adoption_seats_percent",
+								"Type": "int"
+							},
+							{
+								"Name":"onboarding_seats_percent",
+								"Type": "int"
+							},
+							{
+								"Name":"dt",
+								"Type": "string"
+							}
+						],
+						"InputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat",
+						"Location": { "Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "ewsSummaryDb"] },
+						"SerdeInfo": {
+							"Parameters": {
+								"serialization.format": 1
+							},
+							"SerializationLibrary": "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+						}
+					}
+					},
+					"DatabaseName": {
+						"Ref": "ScoresDatabaseEWS"
+					},
+					"CatalogId": {
+						"Ref": "AWS::AccountId"
+					}
+				}
+			},
+		"ScoresDatabaseMAU": {
+			"Type": "AWS::Glue::Database",
+			"Properties": {
+				"CatalogId": {
+						"Ref": "AWS::AccountId"
+					},
+				"DatabaseInput": {
+					"Name": "mau",
+					"Description": "Database to hold tables for MAU data"
+				}
+			}
+		},
+		"MAUSummaryTable": {
+		"DependsOn": "ScoresDatabaseMAU",
+				"Type": "AWS::Glue::Table",
+				"Properties": {
+					"TableInput": {
+						"TableType": "EXTERNAL_TABLE",
+						"Name": "mau_summary",
+						"Parameters": {
+					"classification": "parquet"
+				},
+				"StorageDescriptor": {
+						"OutputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat",
+						"Columns": [
+							{
+								"Name":"account_uuid",
+								"Type": "string"
+							},
+							{
+								"Name":"mau_count_current_month",
+								"Type": "int"
+							},
+							{
+								"Name":"mau_delta_previous_month",
+								"Type": "float"
+							},
+							{
+								"Name":"mau_count_previous_month",
+								"Type": "int"
+							},
+							{
+								"Name":"mau_delta_previous_3month",
+								"Type": "float"
+							},
+							{
+								"Name":"mau_count_previous_3month",
+								"Type": "int"
+							},
+							{
+								"Name":"mau_delta_previous_year",
+								"Type": "float"
+							},
+							{
+								"Name":"mau_count_previous_year",
+								"Type": "int"
+							},
+							{
+								"Name":"mon",
+								"Type": "string"
+							}
+						],
+						"InputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat",
+						"Location": { "Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "mauSummaryDb"] },
+						"SerdeInfo": {
+							"Parameters": {
+								"serialization.format": 1
+							},
+							"SerializationLibrary": "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+						}
+					}
+					},
+					"DatabaseName": {
+						"Ref": "ScoresDatabaseMAU"
+					},
+					"CatalogId": {
+						"Ref": "AWS::AccountId"
+					}
+				}
+			},
+			"MAUDetailTable": {
+		"DependsOn": "ScoresDatabaseMAU",
+				"Type": "AWS::Glue::Table",
+				"Properties": {
+					"TableInput": {
+						"TableType": "EXTERNAL_TABLE",
+						"Name": "mau_details",
+						"Parameters": {
+					"classification": "parquet"
+				},
+				"StorageDescriptor": {
+						"OutputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat",
+						"Columns": [
+							{
+								"Name":"account_uuid",
+								"Type": "string"
+							},
+							{
+								"Name":"site_uuid_csn",
+								"Type": "string"
+							},
+							{
+								"Name":"product_line_code",
+								"Type": "string"
+							},
+							{
+								"Name":"entitlement_license_id",
+								"Type": "string"
+							},
+							{
+								"Name":"contract_id",
+								"Type": "string"
+							},
+							{
+								"Name":"mau_count_current_month",
+								"Type": "int"
+							},
+							{
+								"Name":"mau_delta_previous_month",
+								"Type": "float"
+							},
+							{
+								"Name":"mau_count_previous_month",
+								"Type": "int"
+							},
+							{
+								"Name":"mau_delta_previous_3month",
+								"Type": "float"
+							},
+							{
+								"Name":"mau_count_previous_3month",
+								"Type": "int"
+							},
+							{
+								"Name":"mau_delta_previous_year",
+								"Type": "float"
+							},
+							{
+								"Name":"mau_count_previous_year",
+								"Type": "int"
+							},
+							{
+								"Name":"mon",
+								"Type": "string"
+							}
+						],
+						"InputFormat": "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat",
+						"Location": { "Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "mauDetailsDb"] },
+						"SerdeInfo": {
+							"Parameters": {
+								"serialization.format": 1
+							},
+							"SerializationLibrary": "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+						}
+					}
+					},
+					"DatabaseName": {
+						"Ref": "ScoresDatabaseMAU"
+					},
+					"CatalogId": {
+						"Ref": "AWS::AccountId"
+					}
+				}
+			},
+			"npsSummaryDb" : {
+	      "Type" : "AWS::DynamoDB::Table",
+	      "Properties" : {
+	        "AttributeDefinitions" : [
+	          {
+	            "AttributeName" : "corporate_parent_uuid_csn_static",
+	            "AttributeType" : "S"
+	          }
+	        ],
+	        "KeySchema" : [
+	          {
+	            "AttributeName" : "corporate_parent_uuid_csn_static",
+	            "KeyType" : "HASH"
+	          }
+	        ],
+	        "ProvisionedThroughput" : {
+	          "ReadCapacityUnits" : "100",
+	          "WriteCapacityUnits" : "200"
+	        },
+	        "TableName" : "npsSummary"
+	      }
+	    },
+	    "mauSummaryDb" : {
+	      "Type" : "AWS::DynamoDB::Table",
+	      "Properties" : {
+	        "AttributeDefinitions" : [
+	          {
+	            "AttributeName" : "account_uuid",
+	            "AttributeType" : "S"
+	          }
+	        ],
+	        "KeySchema" : [
+	          {
+	            "AttributeName" : "account_uuid",
+	            "KeyType" : "HASH"
+	          }
+	        ],
+	        "ProvisionedThroughput" : {
+	          "ReadCapacityUnits" : "100",
+	          "WriteCapacityUnits" : "200"
+	        },
+	        "TableName" : "mauSummary"
+	      }
+	    }
+	}
+}

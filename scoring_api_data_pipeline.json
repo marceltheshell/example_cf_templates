@@ -1,0 +1,12 @@
+{
+  "Type" : "AWS::DataPipeline::Pipeline",
+  "Properties" : {
+    "Activate" : true,
+    "Description" : "Test pipeline for scoring api.",
+    "Name" : "scoring-pipeline-mau-summary",
+    "ParameterObjects" : [ Parameter object, ... ],
+    "ParameterValues" : [ Parameter value, ... ],
+    "PipelineObjects" : [ Pipeline object, ... ],
+    "PipelineTags" : [ Pipeline tag, ... ]
+  }
+}

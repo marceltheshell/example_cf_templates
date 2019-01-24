@@ -1,0 +1,25 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowS3",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "<UCP_lambda_IAMRole_ARN>"
+            },
+            "Action": [
+                "s3:GetObject",
+                "s3:ListBucket",
+                "s3:GetBucketLocation",
+                "s3:ListBucketMultipartUploads",
+                "s3:ListMultipartUploadParts",
+                "s3:AbortMultipartUpload",
+                "s3:PutObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::stg.cbr-sfdc-leads-import/*",
+                "arn:aws:s3:::stg.cbr-sfdc-leads-import"
+            ]
+        }
+    ]
+}

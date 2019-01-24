@@ -1,0 +1,52 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "Execution role for AWS Data Pipeline",
+
+	"Resources": {
+		"DMSExecutionRole": {
+         "Type": "AWS::IAM::Role",
+         "Properties": {
+					 "ManagedPolicyArns":["arn:aws:iam::aws:policy/service-role/AmazonDMSVPCManagementRole"],
+            "AssumeRolePolicyDocument": {
+               "Version" : "2012-10-17",
+               "Statement": [ {
+                  "Effect": "Allow",
+                  "Principal": {
+										 "Service": "dms.amazonaws.com"
+                  },
+                  "Action": [ "sts:AssumeRole" ]
+               } ]
+            },
+            "Path": "/",
+            "Policies": [{
+							"PolicyName":"dms-vpc-role",
+							"PolicyDocument":{
+								"Statement":[
+									{
+										"Effect":"Allow",
+										"Action":[
+											"cloudwatch:*",
+											"datapipeline:*",
+											"dynamodb:*",
+											"ec2:Describe*",
+											"elasticmapreduce:AddJobFlowSteps",
+											"elasticmapreduce:Describe*",
+											"elasticmapreduce:ListInstance*",
+											"rds:Describe*",
+											"redshift:DescribeClusters",
+											"redshift:DescribeClusterSecurityGroups",
+											"s3:*",
+											"sdb:*",
+											"sns:*",
+											"sqs:*"
+										],
+										"Resource":"*"
+									}
+								]
+							}
+						}]
+		  		}
+			}
+	}
+}

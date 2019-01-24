@@ -1,0 +1,59 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Resources" : {
+    "NpsSummaryLoadRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "NpsSummaryLoadRule",
+        "Description": "Extract Runs Every day",
+        "ScheduleExpression": "cron(0 1 * * ? *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": { "Fn::GetAtt": ["npsSummaryLoad", "Arn"] },
+            "Id": "NpsSummaryLoadRule",
+            "Input" : ""
+          }
+        ]
+      }
+    },
+    "MauSummaryLoadRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "MauSummaryLoadSRule",
+        "Description": "Extract Runs Every day",
+        "ScheduleExpression": "cron(0 1 * * ? *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": { "Fn::GetAtt": ["mauSummaryLoad", "Arn"] },
+            "Id": "MauSummaryLoadSRule",
+            "Input" : ""
+          }
+        ]
+      }
+    },
+    "PermissionForNpsSummaryLoadRuleToInvokeLambda": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "npsSummaryLoad"
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "events.amazonaws.com",
+        "SourceArn": { "Fn::GetAtt": ["NpsSummaryLoadRule", "Arn"] },
+      }
+    },
+    "PermissionForMauSummaryLoadSRuleToInvokeLambda": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "mauSummaryLoad"
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "events.amazonaws.com",
+        "SourceArn": { "Fn::GetAtt": ["MauSummaryLoadSRule", "Arn"] },
+      }
+    }
+  }
+}

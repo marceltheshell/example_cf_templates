@@ -1,0 +1,68 @@
+{
+   "AWSTemplateFormatVersion":"2010-09-09",
+   "Description":"unload scheduler stack",
+   "Parameters":{
+      "Environment":{
+         "Description":"DEV/INT/STAGE/PRD",
+         "Type":"String",
+         "Default":"DEV",
+         "AllowedValues":[
+            "DEV",
+            "INT",
+            "STG",
+            "PRD"
+         ]
+      }
+   },
+   "Mappings":{
+      "Environments":{
+         "DEV":{
+            "npsSummaryLoad":"TBD"
+         },
+         "INT":{
+            "npsSummaryLoad":"TBD"
+         },
+         "STG":{
+            "npsSummaryLoad":"arn:aws:lambda:us-east-1:197620995324:function:npsSummaryLambda"
+         },
+         "PRD":{
+            "npsSummaryLoad":"arn:aws:lambda:us-east-1:742240829232:function:npsSummaryLoad"
+         }
+      }
+   },
+   "Resources":{
+      "NpsSummaryLoadRule":{
+         "Type":"AWS::Events::Rule",
+         "Properties":{
+            "Name":"NpsSummaryLoadRule",
+            "Description":"NpsSummaryLoad runs everyday at 1:00 AM GMT",
+            "ScheduleExpression":"cron(0 1 * * ? *)",
+            "State":"ENABLED",
+            "Targets":[
+               {
+                  "Arn":{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "npsSummaryLoad"]},
+                  "Id":"NpsSummaryLoadRule",
+                  "Input":"{}"
+               }
+            ]
+         }
+      },
+      "PermissionForNpsSummaryLoadSRuleToInvokeLambda":{
+         "Type":"AWS::Lambda::Permission",
+         "Properties":{
+            "FunctionName":"npsSummaryLoad",
+            "Action":"lambda:InvokeFunction",
+            "Principal":"events.amazonaws.com",
+            "SourceArn":{
+               "Fn::FindInMap":[
+                  "Environments",
+                  {
+                     "Ref":"Environment"
+                  },
+                  "npsSummaryLoad"
+               ]
+            }
+         }
+      }
+   }
+}

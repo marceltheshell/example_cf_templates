@@ -1,0 +1,26 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "execute-api:Invoke",
+            "Resource": "arn:aws:execute-api:us-east-1:<account_number>:<api_gateway_resource_number>/*",
+            "Condition": {
+                "IpAddress": {
+                    "aws:SourceIp": [
+                        "132.188.0.0/16",
+                        "13.108.0.0/14",
+                        "66.231.80.0/20",
+                        "68.232.192.0/20",
+                        "96.43.144.0/20",
+                        "136.146.0.0/15",
+                        "198.245.80.0/20",
+                        "199.122.120.0/21",
+                        "204.14.232.0/21"
+                    ]
+                }
+            }
+        }
+    ]
+}

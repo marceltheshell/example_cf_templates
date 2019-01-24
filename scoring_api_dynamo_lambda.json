@@ -1,0 +1,529 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "Autodesk Scoring API Stack Dynamo version minus authorizers",
+
+	"Parameters": {
+
+		"Environment": {
+			"Description": "DEV/INT/STG/PRD",
+			"Type": "String",
+			"Default": "DEV",
+			"AllowedValues": ["DEV","INT","STG","PRD"]
+		}
+	},
+
+	"Mappings" : {
+		"Environments" : {
+			"DEV" : {
+				"VpcId" : "vpc-f242e789",
+				"LambdaSubnet1" : "subnet-676a3148",
+				"LambdaSubnet2" : "subnet-aa987ae0",
+				"LambdaCodeS3Bucket" : "adsk-dap-sfdc-dev",
+				"LambdaCodeS3Key" : "kraken-dev/deploy/lambda/kraken_lambda.zip",
+				"ApiDomainName" : "www.autodesk.com",
+				"athenaOutputBucketUri" :	"s3://adsk-dap-sfdc-dev/scoring-api/data/athena_output_temp",
+				"bucket" : "adsk-dap-sfdc-dev",
+				"region" : "us-east-1",
+				"ewsDetailsDb" : "ews.ews_details",
+				"ewsSummaryDb" : "ews.ews_summary",
+				"mauDetailsDb" : "mau.mau_details",
+				"mauSummaryDb" : "mau.mau_summary",
+				"npsDetailsDb" : "nps.nps_details",
+				"npsSummaryDb" : "nps.nps_summary"
+			},
+			"INT" : {
+				"VpcId" : "vpc-06d1657d",
+				"LambdaSubnet1" : "subnet-2ced1966",
+				"LambdaSubnet2" : "subnet-37c9e96a",
+				"LambdaCodeS3Bucket" : "adsk-dap-sfdc-int",
+				"LambdaCodeS3Key" : "scoring-api/deploy/lambda/krakalakin.zip",
+				"ApiDomainName" : "www.autodesk.com",
+				"athenaOutputBucketUri" :	"s3://adsk-dap-sfdc-int/scoring-api/data/athena_output_temp",
+				"bucket" : "adsk-dap-sfdc-int",
+				"region" : "us-east-1",
+				"ewsDetailsDb" : "ews.ews_details",
+				"ewsSummaryDb" : "ews.ews_summary",
+				"mauDetailsDb" : "mau.mau_details",
+				"mauSummaryDb" : "mau.mau_summary",
+				"npsDetailsDb" : "nps.nps_details",
+				"npsSummaryDb" : "nps.nps_summary"
+			},
+			"STG" : {
+				"VpcId" : "vpc-00e7127926c7a2f2f",
+				"LambdaSubnet1" : "subnet-0a07110a04489d0d9",
+				"LambdaSubnet2" : "subnet-0b8f582f20ae2b1ed",
+				"LambdaCodeS3Bucket" : "adsk-dap-sfdc-stg",
+				"LambdaCodeS3Key" : "scoring-api/deploy/lambda/kraken_lambda.zip",
+				"ApiDomainName" : "www.autodesk.com",
+				"athenaOutputBucketUri" :	"s3://adsk-dap-sfdc-stg/scoring-api/data/athena_output_temp",
+				"bucket" : "adsk-dap-sfdc-stg",
+				"region" : "us-east-1",
+				"ewsDetailsDb" : "ews.ews_details",
+				"ewsSummaryDb" : "ews.ews_summary",
+				"mauDetailsDb" : "mau.mau_details",
+				"mauSummaryDb" : "mau.mau_summary",
+				"npsDetailsDb" : "nps.nps_details",
+				"npsSummaryDb" : "nps.nps_summary"
+			},
+			"PRD" : {
+				"VpcId" : "vpc-036adab23a23fa606",
+				"LambdaSubnet1" : "subnet-0721c896af970b410",
+				"LambdaSubnet2" : "subnet-07b3d43452ff24721",
+				"LambdaCodeS3Bucket" : "adsk-dap-sfdc-prd",
+				"LambdaCodeS3Key" : "scoring-api/deploy/lambda/kraken_lambda.zip",
+				"ApiDomainName" : "www.autodesk.com",
+				"athenaOutputBucketUri" :	"s3://adsk-dap-sfdc-prd/scoring-api/data/athena_output_temp",
+				"bucket" : "adsk-dap-sfdc-prd",
+				"region" : "us-east-1",
+				"ewsDetailsDb" : "ews.ews_details",
+				"ewsSummaryDb" : "ews.ews_summary",
+				"mauDetailsDb" : "mau.mau_details",
+				"mauSummaryDb" : "mau.mau_summary",
+				"npsDetailsDb" : "nps.nps_details",
+				"npsSummaryDb" : "nps.nps_summary"
+			}
+		}
+	},
+
+	"Resources": {
+		"LambdaExecutionRoleDynamo": {
+         "Type": "AWS::IAM::Role",
+         "Properties": {
+			"ManagedPolicyArns":["arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"],
+            "AssumeRolePolicyDocument": {
+               "Version" : "2012-10-17",
+               "Statement": [ {
+                  "Effect": "Allow",
+                  "Principal": {
+                     "Service": [ "lambda.amazonaws.com" ]
+                  },
+                  "Action": [ "sts:AssumeRole" ]
+               } ]
+            },
+            "Path": "/",
+            "Policies": [{
+				"PolicyName":"lambda-execution",
+				"PolicyDocument":{
+					"Statement":[
+						{
+							"Effect":"Allow",
+							"Action":[
+                "lambda:*",
+								"logs:*",
+								"ec2:DeleteNetworkInterface",
+								"athena:GetQueryResults",
+								"athena:RunQuery",
+							  "athena:StartQueryExecution",
+							  "athena:StopQueryExecution",
+								"athena:GetQueryExecution",
+								"s3:*",
+								"glue:*",
+								"dynamodb:*"
+							],
+							"Resource":"*"
+						}
+					]
+				}
+			}]
+		  }
+		},
+		"LambdaSecurityGroup": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Properties": {
+				"GroupDescription": "Security group used by Scoring API Lambda function",
+				"SecurityGroupIngress": [{
+						"IpProtocol": "tcp",
+						"FromPort": "22",
+						"ToPort": "22",
+						"CidrIp": "10.0.0.0/8"
+					}
+				],
+				"VpcId": {
+					"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "VpcId"]
+				}
+			}
+		},
+		"ScoringApiFunction": {
+			"Type" : "AWS::Lambda::Function",
+			"Properties" : {
+				"Code" : {
+					"S3Bucket": {
+						"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "LambdaCodeS3Bucket"]
+					},
+					"S3Key": {
+						"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "LambdaCodeS3Key"]
+					}
+				},
+				"Description" : "Score API Node.js Function",
+				"FunctionName" : "scoring-api",
+				"Handler" : "server.handler",
+				"MemorySize" : 3008,
+				"Role" : {"Fn::GetAtt":["LambdaExecutionRole","Arn"]},
+				"Runtime" : "nodejs8.10",
+				"Timeout" : 300,
+				"KmsKeyArn" : { "Fn::GetAtt": ["LambdaKmsKey", "Arn"] },
+				"Environment" : {
+					"Variables": {
+						"athenaOutputBucketUri" : 	{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "athenaOutputBucketUri"]},
+						"bucket" : 	{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "bucket"]},
+						"ewsDetailsDb" : 	{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "ewsDetailsDb"]},
+						"ewsSummaryDb" : 	{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "ewsSummaryDb"]},
+						"mauDetailsDb" : 	{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "mauDetailsDb"]},
+						"mauSummaryDb" : 	{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "mauSummaryDb"]},
+						"npsDetailsDb" : 	{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "npsDetailsDb"]},
+						"npsSummaryDb" : 	{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "npsSummaryDb"]},
+						"region" : 	{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "region"]}
+					}
+				},
+				"VpcConfig": {
+					"SecurityGroupIds" : [
+						{ "Ref": "LambdaSecurityGroup" }
+					],
+					"SubnetIds" : [
+						{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "LambdaSubnet1"]},
+						{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "LambdaSubnet2"]}
+					]
+				}
+			}
+		},
+		"LambdaKmsKey": {
+			"Type" : "AWS::KMS::Key",
+			"Properties" : {
+				"Description" : "Scoring API Lambda KMS Key",
+				"Enabled" : true,
+				"EnableKeyRotation" : true,
+				"KeyPolicy" : {
+					"Version": "2012-10-17",
+					"Id": "key-default-1",
+					"Statement": [{
+						"Sid": "Allow use of the key",
+						"Effect": "Allow",
+						"Principal": { "AWS": {
+							"Fn::Join": [
+								"", [
+									"arn:aws:iam::",
+									{
+										"Ref": "AWS::AccountId"
+									},
+									":root"
+								]
+							]
+						}},
+						"Action": [
+							"kms:*"
+						],
+						"Resource": "*"
+					},
+					{
+						"Sid": "Allow use of the key",
+						"Effect": "Allow",
+						"Principal": { "AWS": {"Fn::GetAtt":["LambdaExecutionRole","Arn"]}},
+						"Action": [
+							"kms:*"
+						],
+						"Resource": "*"
+					}]
+				}
+			}
+		},
+		"ScoringApiLogsGroup":{
+			"Type":"AWS::Logs::LogGroup",
+			"Properties":{
+				"LogGroupName": "/aws/lambda/scoring-api",
+				"RetentionInDays":14
+			}
+		},
+		"RestApi": {
+			"Type": "AWS::ApiGateway::RestApi",
+			"Properties": {
+				"Name": "Scoring Lambda API"
+			}
+		},
+		"ScoreModel": {
+			"Type": "AWS::ApiGateway::Model",
+			"Properties": {
+				"ContentType": "application/json",
+				"Name": "Score",
+				"RestApiId": {"Ref": "RestApi"},
+				"Schema" : {}
+			}
+		},
+		"EwsDetailsResource": {
+			"Type": "AWS::ApiGateway::Resource",
+			"Properties": {
+				"RestApiId": {"Ref": "RestApi"},
+				"ParentId": {"Fn::GetAtt": ["RestApi", "RootResourceId"]},
+				"PathPart": "ewsdetails"
+			}
+		},
+		"PostEwsDetailsMethod": {
+			"Type": "AWS::ApiGateway::Method",
+			"Properties": {
+				"HttpMethod" : "POST",
+				"RestApiId": {"Ref": "RestApi"},
+				"ResourceId" : {"Ref": "EwsDetailsResource"},
+				"ApiKeyRequired" : true,
+				"AuthorizationType" : "COGNITO_USER_POOLS",
+				"AuthorizerId" : {"Ref": "ScoringApiAuthorizer"},
+				"Integration": {
+					"Type": "AWS_PROXY",
+					"IntegrationHttpMethod": "POST",
+					"Uri": {"Fn::Join" : ["", ["arn:aws:apigateway:", {"Ref": "AWS::Region"}, ":lambda:path/2015-03-31/functions/", {"Fn::GetAtt": ["ScoringApiFunction", "Arn"]}, "/invocations"]]},
+					"IntegrationResponses": [{
+						"StatusCode": 200
+					}],
+					"PassthroughBehavior": "WHEN_NO_TEMPLATES"
+				},
+				"MethodResponses": [{
+					"StatusCode": 200
+				}]
+			}
+		},
+		"EwsSummaryResource": {
+			"Type": "AWS::ApiGateway::Resource",
+			"Properties": {
+				"RestApiId": {"Ref": "RestApi"},
+				"ParentId": {"Fn::GetAtt": ["RestApi", "RootResourceId"]},
+				"PathPart": "ewssummary"
+			}
+		},
+		"PostEwsSummaryMethod": {
+			"Type": "AWS::ApiGateway::Method",
+			"Properties": {
+				"HttpMethod" : "POST",
+				"RestApiId": {"Ref": "RestApi"},
+				"ResourceId" : {"Ref": "EwsSummaryResource"},
+				"ApiKeyRequired" : true,
+				"AuthorizationType" : "COGNITO_USER_POOLS",
+				"AuthorizerId" : {"Ref": "ScoringApiAuthorizer"},
+				"Integration": {
+					"Type": "AWS_PROXY",
+					"IntegrationHttpMethod": "POST",
+					"Uri": {"Fn::Join" : ["", ["arn:aws:apigateway:", {"Ref": "AWS::Region"}, ":lambda:path/2015-03-31/functions/", {"Fn::GetAtt": ["ScoringApiFunction", "Arn"]}, "/invocations"]]},
+					"IntegrationResponses": [{
+						"StatusCode": 200
+					}],
+					"PassthroughBehavior": "WHEN_NO_TEMPLATES"
+				},
+				"MethodResponses": [{
+					"StatusCode": 200
+				}]
+			}
+		},
+		"NpsDetailsResource": {
+			"Type": "AWS::ApiGateway::Resource",
+			"Properties": {
+				"RestApiId": {"Ref": "RestApi"},
+				"ParentId": {"Fn::GetAtt": ["RestApi", "RootResourceId"]},
+				"PathPart": "npsdetails"
+			}
+		},
+		"PostNpsDetailsMethod": {
+			"Type": "AWS::ApiGateway::Method",
+			"Properties": {
+				"HttpMethod" : "POST",
+				"RestApiId": {"Ref": "RestApi"},
+				"ResourceId" : {"Ref": "NpsDetailsResource"},
+				"ApiKeyRequired" : true,
+				"AuthorizationType" : "COGNITO_USER_POOLS",
+				"AuthorizerId" : {"Ref": "ScoringApiAuthorizer"},
+				"Integration": {
+					"Type": "AWS_PROXY",
+					"IntegrationHttpMethod": "POST",
+					"Uri": {"Fn::Join" : ["", ["arn:aws:apigateway:", {"Ref": "AWS::Region"}, ":lambda:path/2015-03-31/functions/", {"Fn::GetAtt": ["ScoringApiFunction", "Arn"]}, "/invocations"]]},
+					"IntegrationResponses": [{
+						"StatusCode": 200
+					}],
+					"PassthroughBehavior": "WHEN_NO_TEMPLATES"
+				},
+				"MethodResponses": [{
+					"StatusCode": 200
+				}]
+			}
+		},
+		"NpsSummaryResource": {
+			"Type": "AWS::ApiGateway::Resource",
+			"Properties": {
+				"RestApiId": {"Ref": "RestApi"},
+				"ParentId": {"Fn::GetAtt": ["RestApi", "RootResourceId"]},
+				"PathPart": "npssummary"
+			}
+		},
+		"PostNpsSummaryMethod": {
+			"Type": "AWS::ApiGateway::Method",
+			"Properties": {
+				"HttpMethod" : "POST",
+				"RestApiId": {"Ref": "RestApi"},
+				"ResourceId" : {"Ref": "NpsSummaryResource"},
+				"ApiKeyRequired" : true,
+				"AuthorizationType" : "COGNITO_USER_POOLS",
+				"AuthorizerId" : {"Ref": "ScoringApiAuthorizer"},
+				"Integration": {
+					"Type": "AWS_PROXY",
+					"IntegrationHttpMethod": "POST",
+					"Uri": {"Fn::Join" : ["", ["arn:aws:apigateway:", {"Ref": "AWS::Region"}, ":lambda:path/2015-03-31/functions/", {"Fn::GetAtt": ["ScoringApiFunction", "Arn"]}, "/invocations"]]},
+					"IntegrationResponses": [{
+						"StatusCode": 200
+					}],
+					"PassthroughBehavior": "WHEN_NO_TEMPLATES"
+				},
+				"MethodResponses": [{
+					"StatusCode": 200
+				}]
+			}
+		},
+		"MauDetailsResource": {
+			"Type": "AWS::ApiGateway::Resource",
+			"Properties": {
+				"RestApiId": {"Ref": "RestApi"},
+				"ParentId": {"Fn::GetAtt": ["RestApi", "RootResourceId"]},
+				"PathPart": "maudetails"
+			}
+		},
+		"PostMauDetailsMethod": {
+			"Type": "AWS::ApiGateway::Method",
+			"Properties": {
+				"HttpMethod" : "POST",
+				"RestApiId": {"Ref": "RestApi"},
+				"ResourceId" : {"Ref": "MauDetailsResource"},
+				"ApiKeyRequired" : true,
+				"AuthorizationType" : "COGNITO_USER_POOLS",
+				"AuthorizerId" : {"Ref": "ScoringApiAuthorizer"},
+				"Integration": {
+					"Type": "AWS_PROXY",
+					"IntegrationHttpMethod": "POST",
+					"Uri": {"Fn::Join" : ["", ["arn:aws:apigateway:", {"Ref": "AWS::Region"}, ":lambda:path/2015-03-31/functions/", {"Fn::GetAtt": ["ScoringApiFunction", "Arn"]}, "/invocations"]]},
+					"IntegrationResponses": [{
+						"StatusCode": 200
+					}],
+					"PassthroughBehavior": "WHEN_NO_TEMPLATES"
+				},
+				"MethodResponses": [{
+					"StatusCode": 200
+				}]
+			}
+		},
+		"MauSummaryResource": {
+			"Type": "AWS::ApiGateway::Resource",
+			"Properties": {
+				"RestApiId": {"Ref": "RestApi"},
+				"ParentId": {"Fn::GetAtt": ["RestApi", "RootResourceId"]},
+				"PathPart": "mausummary"
+			}
+		},
+		"PostMauSummaryMethod": {
+			"Type": "AWS::ApiGateway::Method",
+			"Properties": {
+				"HttpMethod" : "POST",
+				"RestApiId": {"Ref": "RestApi"},
+				"ResourceId" : {"Ref": "MauSummaryResource"},
+				"ApiKeyRequired" : true,
+				"AuthorizationType" : "COGNITO_USER_POOLS",
+				"AuthorizerId" : {"Ref": "ScoringApiAuthorizer"},
+				"Integration": {
+					"Type": "AWS_PROXY",
+					"IntegrationHttpMethod": "POST",
+					"Uri": {"Fn::Join" : ["", ["arn:aws:apigateway:", {"Ref": "AWS::Region"}, ":lambda:path/2015-03-31/functions/", {"Fn::GetAtt": ["ScoringApiFunction", "Arn"]}, "/invocations"]]},
+					"IntegrationResponses": [{
+						"StatusCode": 200
+					}],
+					"PassthroughBehavior": "WHEN_NO_TEMPLATES"
+				},
+				"MethodResponses": [{
+					"StatusCode": 200
+				}]
+			}
+		},
+		"ScoringApiAuthorizer": {
+			"Type": "AWS::ApiGateway::Authorizer",
+			"Properties": {
+				"Type": "COGNITO_USER_POOLS",
+				"IdentitySource": "method.request.header.Authorization",
+				"Name": "ScoringApiAuthorizer",
+				"ProviderARNs" : [ {"Fn::GetAtt":["ScoringApiUserPool","Arn"]} ],
+				"RestApiId": {
+					"Ref": "RestApi"
+				}
+			}
+		},
+		"RestApiDeployment": {
+			"Type": "AWS::ApiGateway::Deployment",
+			"Properties": {
+				"RestApiId": {"Ref": "RestApi"},
+				"StageName": "v1"
+			},
+			"DependsOn": [
+				"PostEwsDetailsMethod",
+				"PostEwsSummaryMethod",
+				"PostNpsDetailsMethod",
+				"PostNpsSummaryMethod",
+				"PostMauDetailsMethod",
+				"PostMauSummaryMethod"
+			]
+		},
+		"PermissionForApiGatewayToInvokeGetScore": {
+			"Type": "AWS::Lambda::Permission",
+			"Properties": {
+				"FunctionName": { "Ref": "ScoringApiFunction" },
+				"Action": "lambda:InvokeFunction",
+				"Principal": "apigateway.amazonaws.com",
+				"SourceArn": {"Fn::Join" : ["", ["arn:aws:execute-api:",{ "Ref" : "AWS::Region" },":", { "Ref" : "AWS::AccountId" }, ":", { "Ref" : "RestApi" }, "/*"]]}
+			}
+		},
+		"ScoringApiKey": {
+		  "Type": "AWS::ApiGateway::ApiKey",
+		  "DependsOn": ["RestApiDeployment"],
+		  "Properties": {
+		    "Name": "ScoringApiKey",
+		    "Description": "Scoring API Key",
+		    "Enabled": "true",
+		    "StageKeys": [{
+		      "RestApiId": { "Ref": "RestApi" },
+		      "StageName": "v1"
+		    }]
+		  }
+		},
+		"ScoringApiUsagePlan" : {
+		  "Type" : "AWS::ApiGateway::UsagePlan",
+		  "DependsOn": ["RestApiDeployment"],
+		  "Properties" : {
+		    "ApiStages" : [ {"ApiId" : { "Ref" : "RestApi" }, "Stage" : "v1"} ],
+		    "Description" : "Scoring API Usage Plan",
+		    "Quota" : {
+		      "Limit" : 5000,
+		      "Period" : "MONTH"
+		    },
+		    "Throttle" : {
+		      "BurstLimit" : 200,
+		      "RateLimit" : 100
+		    },
+		    "UsagePlanName" : "ScoringApiUsagePlan"
+		  }
+		},
+		"UsagePlanKeyAssociation" : {
+		  "Type": "AWS::ApiGateway::UsagePlanKey",
+		  "Properties": {
+		    "KeyId" : {"Ref" : "ScoringApiKey"},
+		    "KeyType" : "API_KEY",
+		    "UsagePlanId" : {"Ref" : "ScoringApiUsagePlan"}
+		  }
+		},
+		"ScoringApiAppClient": {
+		  "Type" : "AWS::Cognito::UserPoolClient",
+		  "Properties" : {
+		    "ClientName" : "scoring-api-app-client",
+		    "ExplicitAuthFlows" : [ "CUSTOM_AUTH_FLOW_ONLY" ],
+		    "GenerateSecret" : true,
+		    "RefreshTokenValidity" : 7,
+		    "UserPoolId" : { "Ref": "ScoringApiUserPool" }
+		  }
+		},
+		"ScoringApiUserPool": {
+		  "Type" : "AWS::Cognito::UserPool",
+		  "Properties" : {
+		    "UserPoolName" : "ScoringApiUserPool"
+		  }
+		}
+	}
+}

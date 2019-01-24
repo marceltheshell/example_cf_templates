@@ -1,0 +1,48 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "Execution role for Lambda and Dynamo",
+
+	"Resources": {
+		"LambdaDynamoExecutionRole": {
+         "Type": "AWS::IAM::Role",
+         "Properties": {
+			"ManagedPolicyArns":["arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"],
+            "AssumeRolePolicyDocument": {
+               "Version" : "2012-10-17",
+               "Statement": [ {
+                  "Effect": "Allow",
+                  "Principal": {
+                     "Service": [ "lambda.amazonaws.com" ]
+                  },
+                  "Action": [ "sts:AssumeRole" ]
+               } ]
+            },
+            "Path": "/",
+            "Policies": [{
+				"PolicyName":"lambda-execution",
+				"PolicyDocument":{
+					"Statement":[
+						{
+							"Effect":"Allow",
+							"Action":[
+								"lambda:*",
+								"logs:*",
+								"athena:GetQueryResults",
+								"athena:RunQuery",
+							  "athena:StartQueryExecution",
+							  "athena:StopQueryExecution",
+								"athena:GetQueryExecution",
+								"s3:*",
+								"glue:*",
+								"dynamodb:*"
+							],
+							"Resource":"*"
+						}
+					]
+				}
+			}]
+		  }
+		}
+	}
+}

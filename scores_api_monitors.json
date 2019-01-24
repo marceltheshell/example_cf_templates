@@ -1,0 +1,136 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "monitoring scores api - stack",
+  "Parameters": {
+    "Environment": {
+      "Description": "DEV/INT/STAGE/PRD",
+      "Type": "String",
+      "Default": "DEV",
+      "AllowedValues": ["DEV","INT","STG","PRD"]
+    }
+  },
+    "Mappings": {
+        "Environments" : {
+          "DEV" : {
+            "EbsoEmailAlerts" : "mudassir.ali.syed@autodesk.com",
+            "AlarmDescription":"EBSO NEED TO SUGGEST"
+          },
+          "INT" : {
+            "EbsoEmailAlerts" : "mudassir.ali.syed@autodesk.com",
+            "AlarmDescription":"EBSO NEED TO SUGGEST"
+            },
+          "STG" : {
+            "EbsoEmailAlerts" : "mudassir.ali.syed@autodesk.com",
+            "AlarmDescription":"EBSO NEED TO SUGGEST"
+          },
+          "PRD" : {
+            "EbsoEmailAlerts" : "des.sdc.customer.apps.team@autodesk.com",
+            "AlarmDescription":"Impact:3, Urgency=2, CI=SFDC Enrichment - Account Explorer, Group=DES Web Ops"
+          }
+  }
+},
+  "Resources": {
+      "NpsSummaryLoadLambdaErrorAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": {"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "AlarmDescription"]},
+        "AlarmActions": [
+          { "Ref" : "AlarmTopic" }
+        ],
+        "AlarmName": "NPS load to Dynamo DB has failed",
+        "MetricName": "Errors",
+        "Namespace": "AWS/Lambda",
+        "Statistic": "Sum",
+        "Period": "86400",
+        "EvaluationPeriods": "1",
+        "Threshold": "1",
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": "npsSummaryLoad"
+          }
+        ]
+      }
+    },
+    "NpsSummaryLoadLambdaInvocationAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": {"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "AlarmDescription"]},
+        "AlarmActions": [
+          { "Ref" : "AlarmTopic" }
+        ],
+        "AlarmName": "NPS load to Dynamo DB - Not Invoked",
+        "MetricName": "Invocations",
+        "Namespace": "AWS/Lambda",
+        "Statistic": "Sum",
+        "Period": "86400",
+        "EvaluationPeriods": "1",
+        "Threshold": "1",
+        "ComparisonOperator": "LessThanThreshold",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": "npsSummaryLoad"
+          }
+        ]
+      }
+    },
+    "DynamoScoringApiErrorAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": {"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "AlarmDescription"]},
+        "AlarmActions": [
+          { "Ref" : "AlarmTopic" }
+        ],
+        "AlarmName": "Scoring API failed to respond for Dyanamo Data",
+        "MetricName": "Errors",
+        "Namespace": "AWS/Lambda",
+        "Statistic": "Sum",
+        "Period": "86400",
+        "EvaluationPeriods": "1",
+        "Threshold": "1",
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": "dynamo-scoring-api"
+          }
+        ]
+      }
+    },
+    "ScoringApiErrorAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": {"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "AlarmDescription"]},
+        "AlarmActions": [
+          { "Ref" : "AlarmTopic" }
+        ],
+        "AlarmName": "Scoring API failed to respond",
+        "MetricName": "Errors",
+        "Namespace": "AWS/Lambda",
+        "Statistic": "Sum",
+        "Period": "86400",
+        "EvaluationPeriods": "1",
+        "Threshold": "1",
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": "scoring-api"
+          }
+        ]
+      }
+    },
+    "AlarmTopic" : {
+          "Type" : "AWS::SNS::Topic",
+          "Properties" : {
+            "DisplayName" : "accountexplorer-scores-api",
+            "Subscription" : [
+              {"Endpoint" : {"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "EbsoEmailAlerts"]},"Protocol" : "Email"}
+            ],
+            "TopicName" : "accountexplorer-scores-api"
+          }
+        }
+  }
+}

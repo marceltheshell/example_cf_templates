@@ -1,0 +1,336 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "Autodesk CBR SFDC lead upload lambda stack, to be deployed in DAP account",
+
+	"Parameters": {
+
+		"Environment": {
+			"Description": "DEV/INT/STG/PRD",
+			"Type": "String",
+			"Default": "DEV",
+			"AllowedValues": ["DEV","INT","STG","PRD"]
+		}
+	},
+	"Mappings": {
+		"Environments" : {
+			"DEV" : {
+				"VpcId" : "vpc-f242e789",
+				"ApplicationSubnet1" : "subnet-676a3148",
+				"ApplicationSubnet2" : "subnet-aa987ae0",
+				"LambdaCodeS3Bucket" : "cbr-sfdc-leads-import",
+				"LambdaCodeS3Key1" : "deploy/lambda/sfdc_import_lambda.zip",
+				"LambdaCodeS3Key2" : "deploy/lambda/sfdc_import_lambda_2.zip",
+				"SfdcUsername" : "Integrationuser_cbr_upload@autodesk.com.adsksfstg",
+				"SfdcBaseUrl" : "https://autodesk--adsksfstg.cs12.my.salesforce.com",
+				"SfdcClientId" : "3MVG9Oe7T3Ol0ea6B.yYS6QJegdT1pRoTsZxDclFGG7B4w_jEHOHcu8Z2HcjgL31.9oh17kt4guhNvEVa.ydB",
+				"athenaOutputS3" :	"s3://cbr-sfdc-leads-import/athena_output",
+				"database" : "cbr",
+				"currentDb" : "s3://cbr-sfdc-leads-import/ucp_redshift_data/current",
+				"previousDb" : "s3://cbr-sfdc-leads-import/ucp_redshift_data/previous",
+				"sqsUrl" : "https://sqs.us-east-1.amazonaws.com/520731883246/CBR_leads_queue"
+			},
+			"INT" : {
+				"VpcId" : "vpc-06d1657d",
+				"ApplicationSubnet1" : "subnet-2ced1966",
+				"ApplicationSubnet2" : "subnet-37c9e96a",
+				"LambdaCodeS3Bucket" : "adsk-dap-sfdc-int",
+				"LambdaCodeS3Key" : "",
+				"SfdcUsername" : "",
+				"SfdcBaseUrl" : "",
+				"SfdcClientId" : "",
+				"S3Output" : ""
+			},
+			"STG" : {
+				"VpcId" : "vpc-00e7127926c7a2f2f",
+				"ApplicationSubnet1" : "subnet-0a07110a04489d0d9",
+				"ApplicationSubnet2" : "subnet-0a07110a04489d0d9",
+				"LambdaCodeS3Bucket" : "stg.cbr-sfdc-leads-import",
+				"LambdaCodeS3Key1" : "deploy/lambda/sfdc_import_lambda.zip",
+				"LambdaCodeS3Key2" : "deploy/lambda/sfdc_import_lambda_exec.zip",
+				"SfdcUsername" : "Integrationuser_cbr_upload@autodesk.com.adsksfstg",
+				"SfdcBaseUrl" : "https://autodesk--adsksfstg.cs12.my.salesforce.com",
+				"SfdcClientId" : "3MVG9Oe7T3Ol0ea6B.yYS6QJegdT1pRoTsZxDclFGG7B4w_jEHOHcu8Z2HcjgL31.9oh17kt4guhNvEVa.ydB",
+				"athenaOutputS3" :	"s3://stg.cbr-sfdc-leads-import/athena_output",
+				"database" : "cbr",
+				"currentDb" : "s3://stg.cbr-sfdc-leads-import/ucp_redshift_data/current",
+				"previousDb" : "s3://stg.cbr-sfdc-leads-import/ucp_redshift_data/previous",
+				"sqsUrl" : ""
+			},
+			"PRD" : {
+				"VpcId" : "vpc-036adab23a23fa606",
+				"ApplicationSubnet1" : "subnet-0721c896af970b410",
+				"ApplicationSubnet2" : "subnet-07b3d43452ff24721",
+				"LambdaCodeS3Bucket" : "prd.cbr-sfdc-leads-import",
+				"LambdaCodeS3Key1" : "deploy/lambda/sfdc_import_lambda.zip",
+				"LambdaCodeS3Key2" : "deploy/lambda/sfdc_import_lambda_exec.zip",
+				"SfdcBaseUrl" : "https://autodesk.my.salesforce.com",
+				"athenaOutputS3" : "s3://stg.cbr-sfdc-leads-import/athena_output",
+				"database" : "cbr",
+				"currentDb" : "s3://prd.cbr-sfdc-leads-import/ucp_redshift_data/current",
+				"previousDb" : "s3://prd.cbr-sfdc-leads-import/ucp_redshift_data/previous",
+				"sqsUrl" : ""
+			}
+		}
+	},
+
+	"Resources": {
+		"LambdaExecutionRole": {
+         "Type": "AWS::IAM::Role",
+         "Properties": {
+					 "ManagedPolicyArns":["arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"],
+					 "AssumeRolePolicyDocument": {
+               "Version" : "2012-10-17",
+               "Statement": [ {
+                  "Effect": "Allow",
+                  "Principal": {
+                     "Service": [ "lambda.amazonaws.com" ]
+                  },
+                  "Action": [ "sts:AssumeRole" ]
+               } ]
+            },
+            "Path": "/",
+            "Policies": [{
+				"PolicyName":"lambda-execution",
+				"PolicyDocument":{
+					"Statement":[
+						{
+							"Effect":"Allow",
+							"Action":[
+								"lambda:*",
+								"logs:*",
+								"cloudwatch:PutMetricData",
+								"athena:*",
+								"s3:*",
+								"glue:GetTable",
+								"sqs:SendMessage",
+								"sqs:ReceiveMessage",
+								"sqs:DeleteMessage",
+								"sqs:GetQueueAttributes"
+							],
+							"Resource":"*"
+						}
+					]
+				}
+			}]
+		  }
+		},
+		"LambdaKmsKey": {
+			"Type" : "AWS::KMS::Key",
+			"Properties" : {
+				"Description" : "sfdc_lead_import Lambda Function KMS Key",
+				"Enabled" : true,
+				"EnableKeyRotation" : true,
+				"KeyPolicy" : {
+					"Version": "2012-10-17",
+					"Id": "key-default-1",
+					"Statement": [{
+						"Sid": "Allow use of the key",
+						"Effect": "Allow",
+						"Principal": { "AWS": {
+							"Fn::Join": [
+								"", [
+									"arn:aws:iam::",
+									{
+										"Ref": "AWS::AccountId"
+									},
+									":root"
+								]
+							]
+						}},
+						"Action": [
+							"kms:*"
+						],
+						"Resource": "*"
+					},
+					{
+						"Sid": "Allow use of the key",
+						"Effect": "Allow",
+						"Principal": { "AWS": {"Fn::GetAtt":["LambdaExecutionRole","Arn"]}},
+						"Action": [
+							"kms:*"
+						],
+						"Resource": "*"
+					}]
+				}
+			}
+		},
+		"LambdaKmsKeyAlias":{
+			"Type" : "AWS::KMS::Alias",
+			  "Properties" : {
+			    "AliasName" : "alias/cbr_sfdc_lead_import_kms_key",
+			    "TargetKeyId" : {"Ref":"LambdaKmsKey"}
+			  }
+		},
+		"SfdcLeadImportFunction": {
+			"Type" : "AWS::Lambda::Function",
+			"Properties" : {
+				"Code" : {
+					"S3Bucket": {
+						"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "LambdaCodeS3Bucket"]
+					},
+					"S3Key": {
+						"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "LambdaCodeS3Key1"]
+					}
+				},
+				"Description" : "SFDC Lead Import Function",
+				"FunctionName" : "sfdc_lead_import",
+				"Handler" : "sfdc_lead_import.lambda_handler",
+				"MemorySize" : 3008,
+				"Role" : {"Fn::GetAtt":["LambdaExecutionRole","Arn"]},
+				"Runtime" : "python3.6",
+				"Timeout" : 900,
+				"KmsKeyArn" : { "Fn::GetAtt": ["LambdaKmsKey", "Arn"] },
+				"Environment" : {
+					"Variables": {
+						"DATABASE" : {"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "database"]},
+						"ATHENA_OUTPUT_S3" : {"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "athenaOutputS3"]},
+						"SQS_URL" : {"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "sqsUrl"]},
+						"S3_BUCKET" : {"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "LambdaCodeS3Bucket"]}
+					}
+				}
+			}
+		},
+		"SfdcLeadImportFunctionExec": {
+			"Type" : "AWS::Lambda::Function",
+			"Properties" : {
+				"Code" : {
+					"S3Bucket": {
+						"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "LambdaCodeS3Bucket"]
+					},
+					"S3Key": {
+						"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "LambdaCodeS3Key2"]
+					}
+				},
+				"Description" : "SFDC Lead Import Function which receives the SQS and makes the call to SFDC",
+				"FunctionName" : "sfdc_lead_import_exec",
+				"Handler" : "sfdc_lead_import_2.lambda_handler",
+				"MemorySize" : 128,
+				"Role" : {"Fn::GetAtt":["LambdaExecutionRole","Arn"]},
+				"Runtime" : "python3.6",
+				"Timeout" : 900,
+				"KmsKeyArn" : { "Fn::GetAtt": ["LambdaKmsKey", "Arn"] },
+				"Environment" : {
+					"Variables": {
+						"SFDC_BASE_URL" : {"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "SfdcBaseUrl"]},
+						"SFDC_USERNAME" : "",
+						"SFDC_PASSWORD" : "",
+						"SFDC_CLIENT_ID" : "",
+						"SFDC_CLIENT_SECRET" : "",
+						"SFDC_SECURITY_TOKEN" : ""
+					}
+				}
+			}
+		},
+		"ScoresDatabaseCBR": {
+			"Type": "AWS::Glue::Database",
+			"Properties": {
+				"CatalogId": {
+						"Ref": "AWS::AccountId"
+					},
+				"DatabaseInput": {
+					"Name": "cbr",
+					"Description": "Database to hold tables for CBR scores from Redshift"
+				}
+			}
+		},
+		"CurrentTable": {
+			"DependsOn": "ScoresDatabaseCBR",
+			"Type": "AWS::Glue::Table",
+			"Properties": {
+				"TableInput": {
+					"TableType": "EXTERNAL_TABLE",
+					"Name": "current",
+					"Parameters": {
+						"classification": "csv"
+					},
+					"StorageDescriptor": {
+						"OutputFormat": "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat",
+						"Columns": [
+							{
+								"Name":"lead_id",
+								"Type": "string"
+							},
+							{
+								"Name":"score",
+								"Type": "string"
+							}
+						],
+						"InputFormat": "org.apache.hadoop.mapred.TextInputFormat",
+						"Location": {"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "currentDb"]},
+						"SerdeInfo": {
+							"Parameters": {
+								"field.delim": ","
+							},
+							"SerializationLibrary": "org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe"
+						}
+					}
+				},
+				"DatabaseName": {
+					"Ref": "ScoresDatabaseCBR"
+				},
+				"CatalogId": {
+					"Ref": "AWS::AccountId"
+				}
+			}
+		},
+		"PreviousTable": {
+			"DependsOn": "ScoresDatabaseCBR",
+			"Type": "AWS::Glue::Table",
+			"Properties": {
+				"TableInput": {
+					"TableType": "EXTERNAL_TABLE",
+					"Name": "previous",
+					"Parameters": {
+						"classification": "csv"
+					},
+					"StorageDescriptor": {
+						"OutputFormat": "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat",
+						"Columns": [
+							{
+								"Name":"lead_id",
+								"Type": "string"
+							},
+							{
+								"Name":"score",
+								"Type": "string"
+							}
+						],
+						"InputFormat": "org.apache.hadoop.mapred.TextInputFormat",
+						"Location": {"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "previousDb"]},
+						"SerdeInfo": {
+							"Parameters": {
+								"field.delim": ","
+							},
+							"SerializationLibrary": "org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe"
+						}
+					}
+				},
+				"DatabaseName": {
+					"Ref": "ScoresDatabaseCBR"
+				},
+				"CatalogId": {
+					"Ref": "AWS::AccountId"
+				}
+			}
+		},
+		"SQSQueue": {
+			"Type" : "AWS::SQS::Queue",
+			"Properties" : {
+				"QueueName": "CBR_leads_queue",
+				"ReceiveMessageWaitTimeSeconds": 10,
+				"VisibilityTimeout": 900
+			}
+		},
+		"LambdaFunctionEventSourceMapping": {
+			"DependsOn": ["SQSQueue", "SfdcLeadImportFunctionExec"],
+			"Type": "AWS::Lambda::EventSourceMapping",
+			"Properties": {
+				"BatchSize": 1,
+      	"Enabled": true,
+      	"EventSourceArn": {"Fn::GetAtt":["SQSQueue","Arn"]},
+      	"FunctionName": {"Fn::GetAtt":["SfdcLeadImportFunctionExec","Arn"]}
+			}
+		}
+	}
+}

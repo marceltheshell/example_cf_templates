@@ -1,0 +1,267 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+	"Description": "Autodesk CBR SFDC lead upload lambda stack, to be deployed in UCP account",
+
+	"Parameters": {
+
+		"Environment": {
+			"Description": "DEV/INT/STG/PRD",
+			"Type": "String",
+			"Default": "DEV",
+			"AllowedValues": ["DEV","INT","STG","PRD"]
+		}
+	},
+	"Mappings": {
+		"Environments" : {
+			"DEV" : {
+				"VpcId" : "vpc-0650817a941c0906f",
+				"ApplicationSubnet1" : "subnet-0f60dec1cafacb0c1",
+				"ApplicationSubnet2" : "subnet-00fa09d4ee39740bc",
+				"LambdaCodeS3Bucket" : "stg.cbr-sfdc-unload",
+				"LambdaCodeS3Key" : "deploy/lambda/ucp_cbr_redshift_export.zip",
+				"Host" : "ucpstg.cm97fubguawa.us-east-1.redshift.amazonaws.com",
+        "Port" : "5439",
+        "Database" : "ucpstg1",
+        "User" : "scores_api_user",
+        "Password" : "ChangeMe_1",
+        "S3Region" : "us-east-1",
+        "S3TargetBucket" : "stg.cbr-sfdc-leads-import",
+				"S3PolicyResource1": "arn:aws:s3:::stg.cbr-sfdc-unload",
+				"S3PolicyResource2": "arn:aws:s3:::stg.cbr-sfdc-unload/*"
+			},
+			"INT" : {
+				"VpcId" : "vpc-0650817a941c0906f",
+				"ApplicationSubnet1" : "subnet-0f60dec1cafacb0c1",
+				"ApplicationSubnet2" : "subnet-00fa09d4ee39740bc",
+				"LambdaCodeS3Bucket" : "stg.cbr-sfdc-unload",
+				"LambdaCodeS3Key" : "deploy/lambda/ucp_cbr_redshift_export.zip",
+				"Host" : "ucpstg.cm97fubguawa.us-east-1.redshift.amazonaws.com",
+        "Port" : "5439",
+        "Database" : "ucpstg1",
+        "User" : "scores_api_user",
+        "Password" : "ChangeMe_1",
+        "S3Region" : "us-east-1",
+        "S3TargetBucket" : "stg.cbr-sfdc-leads-import",
+				"S3PolicyResource1": "arn:aws:s3:::stg.cbr-sfdc-unload",
+				"S3PolicyResource2": "arn:aws:s3:::stg.cbr-sfdc-unload/*"
+			},
+			"STG" : {
+				"VpcId" : "vpc-0650817a941c0906f",
+				"ApplicationSubnet1" : "subnet-0f60dec1cafacb0c1",
+				"ApplicationSubnet2" : "subnet-00fa09d4ee39740bc",
+				"LambdaCodeS3Bucket" : "stg.cbr-sfdc-unload",
+				"LambdaCodeS3Key" : "deploy/lambda/cbr_redshift_export_lambda.zip",
+				"Host" : "ucpstg.cm97fubguawa.us-east-1.redshift.amazonaws.com",
+        "Port" : "5439",
+        "Database" : "ucpstg1",
+        "User" : "scores_api_user",
+        "Password" : "ChangeMe_1",
+        "S3Region" : "us-east-1",
+        "S3TargetBucket" : "stg.cbr-sfdc-leads-import",
+				"S3PolicyResource1": "arn:aws:s3:::stg.cbr-sfdc-unload",
+				"S3PolicyResource2": "arn:aws:s3:::stg.cbr-sfdc-unload/*"
+			},
+			"PRD" : {
+				"VpcId" : "vpc-1c4e8a79",
+				"ApplicationSubnet1" : "subnet-19dce75f",
+				"ApplicationSubnet2" : "subnet-251b4e63",
+				"LambdaCodeS3Bucket" : "prd.cbr-sfdc-unload",
+				"LambdaCodeS3Key" : "deploy/lambda/cbr_redshift_export_lambda.zip",
+				"Host" : "ucpprd.cusjr55gdzdb.us-east-1.redshift.amazonaws.com:5439",
+        "Port" : "5439",
+        "Database" : "ucpprd",
+        "User" : "scores_api_user",
+        "S3Region" : "us-east-1",
+        "S3TargetBucket" : "prd.cbr-sfdc-leads-import",
+				"S3PolicyResource1": "arn:aws:s3:::prd.cbr-sfdc-unload",
+				"S3PolicyResource2": "arn:aws:s3:::prd.cbr-sfdc-unload"
+			}
+		}
+	},
+	"Resources": {
+    "RedshiftExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+       "ManagedPolicyArns":["arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"],
+       "AssumeRolePolicyDocument": {
+           "Version" : "2012-10-17",
+           "Statement": [ {
+              "Effect": "Allow",
+              "Principal": {
+                 "Service": [ "redshift.amazonaws.com" ]
+              },
+              "Action": [ "sts:AssumeRole" ]
+           } ]
+        },
+        "Path": "/",
+        "Policies": [{
+          "PolicyName":"redshift-execution",
+          "PolicyDocument":{
+            "Statement":[
+              {
+                "Effect":"Allow",
+                "Action":[
+                  "lambda:*",
+                  "logs:*",
+                  "s3:*",
+                  "redshift:*"
+                ],
+                "Resource":"*"
+              }
+            ]
+          }
+        }]
+      }
+    },
+		"LambdaExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+       "ManagedPolicyArns":["arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"],
+       "AssumeRolePolicyDocument": {
+           "Version" : "2012-10-17",
+           "Statement": [ {
+              "Effect": "Allow",
+              "Principal": {
+                 "Service": [ "lambda.amazonaws.com" ]
+              },
+              "Action": [ "sts:AssumeRole" ]
+           } ]
+        },
+        "Path": "/",
+        "Policies": [{
+          "PolicyName":"lambda-execution",
+          "PolicyDocument":{
+            "Statement":[
+              {
+                "Effect":"Allow",
+                "Action":[
+                  "lambda:*",
+                  "logs:*",
+                  "s3:*",
+                  "redshift:*",
+									"kms:*"
+                ],
+                "Resource":"*"
+              }
+            ]
+          }
+        }]
+      }
+    },
+		"LambdaKmsKey": {
+			"Type" : "AWS::KMS::Key",
+			"Properties" : {
+				"Description" : "sfdc_lead_import Lambda Function KMS Key for UCP account",
+				"Enabled" : true,
+				"EnableKeyRotation" : true,
+				"KeyPolicy" : {
+					"Version": "2012-10-17",
+					"Id": "key-default-1",
+					"Statement": [{
+						"Sid": "Allow use of the key",
+						"Effect": "Allow",
+						"Principal": { "AWS": {"Fn::Join": ["", ["arn:aws:iam::",{ "Ref": "AWS::AccountId"}, ":root"]]}},
+						"Action": ["kms:*"],
+						"Resource": "*"
+					},
+					{
+						"Sid": "Allow use of the key",
+						"Effect": "Allow",
+						"Principal": { "AWS": {"Fn::GetAtt":["LambdaExecutionRole","Arn"]}},
+						"Action": ["kms:*"],
+						"Resource": "*"
+					}]
+				}
+			}
+		},
+		"LambdaKmsKeyAlias":{
+			"Type" : "AWS::KMS::Alias",
+			  "Properties" : {
+			    "AliasName" : "alias/cbr_sfdc_lead_import_kms_key",
+			    "TargetKeyId" : {"Ref":"LambdaKmsKey"}
+			  }
+		},
+		"CbrRedshiftExportLambda": {
+			"Type" : "AWS::Lambda::Function",
+			"Properties" : {
+				"Code" : {
+					"S3Bucket": {
+						"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "LambdaCodeS3Bucket"]
+					},
+					"S3Key": {
+						"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "LambdaCodeS3Key"]
+					}
+				},
+				"Description" : "Function which unloads the UCP redshift data into DAP account",
+				"FunctionName" : "cbr_redshift_export_lambda",
+				"Handler" : "redshift_unload_lambda.lambda_handler",
+				"MemorySize" : 3008,
+				"Role" : {"Fn::GetAtt":["LambdaExecutionRole","Arn"]},
+				"Runtime" : "python3.6",
+				"Timeout" : 100,
+				"KmsKeyArn" : { "Fn::GetAtt": ["LambdaKmsKey", "Arn"] },
+				"Environment" : {
+					"Variables": {
+						"HOST" : {"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "Host"]},
+						"PORT" : {"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "Port"]},
+						"DATABASE" : {"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "Database"]},
+						"USER" : {"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "User"]},
+						"PASSWORD" : "",
+						"S3_BUCKET_NAME" : {"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "LambdaCodeS3Bucket"]},
+						"S3_REGION" : {"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "S3Region"]},
+						"S3_TARGET_BUCKET" : {"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "S3TargetBucket"]},
+            "REDSHIFT_IAM_ROLE" : {"Fn::GetAtt":["RedshiftExecutionRole","Arn"]}
+					}
+				},
+				"VpcConfig": {
+					"SecurityGroupIds" : [
+						{ "Ref": "LambdaSecurityGroup" }
+					],
+					"SubnetIds" : [
+						{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "ApplicationSubnet1"]},
+						{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "ApplicationSubnet1"]}
+					]
+				}
+			}
+    },
+		"LambdaSecurityGroup": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Properties": {
+				"GroupDescription": "cbr_redshift_export_lambda",
+				"SecurityGroupIngress": [{
+						"IpProtocol": "tcp",
+						"FromPort": "22",
+						"ToPort": "22",
+						"CidrIp": "10.0.0.0/8"
+					}
+				],
+				"VpcId": {
+					"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "VpcId"]
+				}
+			}
+		},
+		"RedshiftUnloadRule":{
+			"Type":"AWS::Events::Rule",
+			"Properties":{
+			  "Name":"RedshiftUnloadRule",
+			  "Description":"Redshift unload rule runs everyday at 3:00 AM PST",
+			  "ScheduleExpression":"cron(0 11 * * ? *)",
+			  "State":"ENABLED",
+			  "Targets":[{
+	        "Arn":{ "Fn::GetAtt": ["CbrRedshiftExportLambda", "Arn"] },
+	        "Id": "RedshiftUnloadRule"
+				}]
+			}
+		},
+		"PermissionForRedshiftUnloadRuleToInvokeLambda":{
+       "Type":"AWS::Lambda::Permission",
+       "Properties":{
+          "FunctionName":"cbr_redshift_export_lambda",
+          "Action":"lambda:InvokeFunction",
+          "Principal":"events.amazonaws.com",
+          "SourceArn": { "Fn::GetAtt": ["RedshiftUnloadRule", "Arn"] }
+       }
+    }
+	}
+}

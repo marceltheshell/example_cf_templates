@@ -1,0 +1,430 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Stack for enrichment data sync for Salesforce",
+  "Parameters": {
+    "Environment": {
+      "Description": "DEV/INT/STG/PRD",
+      "Type": "String",
+      "Default": "DEV",
+      "AllowedValues": ["DEV","INT","STG","PRD"]
+    }
+  },
+  "Mappings": {
+        "Environments" : {
+          "DEV" : {
+            "CodeBucketName": "adp-dap-scores-data",
+            "CodeKey":"code/lambda/deploy/scores-data-sync.zip",
+            "EbsoAlerts" : "arn:aws:sqs:us-east-1:070801476158:dap-test-alerts",
+            "EbsoEmailAlerts":"mudassir.ali.syed@autodesk.com",
+            "ADPBUCKETFROM":"com.autodesk.adp.dev.us-west-1.green",
+            "ADPBUCKETTO":"com.autodesk.adp.dev.us-west-1.gld.salesforce",
+            "DAPBUCKETFROM":"com.autodesk.adp.dev.us-west-1.gld.salesforce",
+            "DAPBUCKETTO":"com.autodesk.dap.dev.us-east-1.enrichment",
+            "EWSDETAILS":"temp_notebook/account_health_ews_detail_sample_uuid/",
+            "EWSSUMMARY":"temp_notebook/account_health_ews_summary_sample_uuid/",
+            "MAUDETAILS":"optimized/desktop_product_usage/monthly_active_users_by_site_account/",
+            "MAUSUMMARY":"optimized/desktop_product_usage/monthly_active_users_by_parent_account/",
+            "NPSDETAILS":"temp_notebook/account_health_nps_detail_sample/",
+            "NPSSUMMARY":"temp_notebook/account_health_nps_summary_sample/"
+
+          },
+          "INT" : {
+            "CodeBucketName": "dap-sfdc-int-deploy",
+            "CodeKey":"code/lambda/deploy/scores-data-sync.zip",
+            "EbsoAlerts" : "arn:aws:sqs:us-east-1:070801476158:dap-test-alerts",
+            "EbsoEmailAlerts" : "mudassir.ali.syed@autodesk.com",
+            "ADPBUCKETFROM":"com.autodesk.adp.dev.us-west-1.green",
+            "ADAPBUCKETTO":"com.autodesk.adp.dev.us-west-1.gld.salesforce",
+            "DAPBUCKETFROM":"com.autodesk.adp.dev.us-west-1.gld.salesforce",
+            "DAPBUCKETTO":"com.autodesk.dap.dev.us-east-1.enrichment",
+            "EWSDETAILS":"temp_notebook/account_health_ews_detail_sample_uuid/",
+            "EWSSUMMARY":"temp_notebook/account_health_ews_summary_sample_uuid/",
+            "MAUDETAILS":"optimized/desktop_product_usage/monthly_active_users_by_site_account/",
+            "MAUSUMMARY":"optimized/desktop_product_usage/monthly_active_users_by_parent_account/",
+            "NPSDETAILS":"temp_notebook/account_health_nps_detail_sample/",
+            "NPSSUMMARY":"temp_notebook/account_health_nps_summary_sample/"
+          },
+          "STG" : {
+            "CodeBucketName": "com.autodesk.adp.stg.us-east-1.blk",
+            "CodeKey":"code/scores-data-sync.zip",
+            "PipelineActivatorCodeKey":"code/scores-data-sync.zip",
+            "MauSummaryEtlCodeKey":"code/scores-data-sync.zip",
+            "EbsoAlerts" : "arn:aws:sqs:us-east-1:070801476158:dap-test-alerts",
+            "EbsoEmailAlerts" : "mudassir.ali.syed@autodesk.com",
+            "ADPBUCKETFROM":"com.autodesk.adp.stg.us-west-1.grn",
+            "ADPBUCKETTO":"com.autodesk.adp.stg.us-west-1.gld.enrichment",
+            "DAPBUCKETFROM":"com.autodesk.adp.stg.us-west-1.gld.enrichment",
+            "DAPBUCKETTO":"com.autodesk.dap.stg.us-east-1.enrichment",
+            "EWSDETAILS":"temp_notebook/account_health_ews_detail_sample_uuid/",
+            "EWSSUMMARY":"temp_notebook/account_health_ews_summary_sample_uuid/",
+            "MAUDETAILS":"optimized/desktop_product_usage/monthly_active_users_by_site_account/",
+            "MAUSUMMARY":"optimized/desktop_product_usage/monthly_active_users_by_parent_account/",
+            "NPSDETAILS":"temp_notebook/account_health_nps_detail_sample/",
+            "NPSSUMMARY":"temp_notebook/account_health_nps_summary_sample/",
+            "DAPEWSDETAILS":"export/Salesforce/temp_notebook/account_health_ews_detail_sample_uuid/",
+            "DAPEWSSUMMARY":"export/Salesforce/temp_notebook/account_health_ews_summary_sample_uuid/",
+            "DAPMAUDETAILS":"export/Salesforce/optimized/desktop_product_usage/monthly_active_users_by_site_account/",
+            "DAPMAUSUMMARY":"export/Salesforce/optimized/desktop_product_usage/monthly_active_users_by_parent_account/",
+            "DAPNPSDETAILS":"export/Salesforce/temp_notebook/account_health_nps_detail_sample/",
+            "DAPNPSSUMMARY":"export/Salesforce/temp_notebook/account_health_nps_summary_sample/",
+            "PREFIX":"export/Salesforce/",
+            "DAPPREFIX":""
+          },
+          "PRD" : {
+            "CodeBucketName": "com.autodesk.adp.prd.us-east-1.blk",
+            "CodeKey":"code/scores-data-sync.zip",
+            "EbsoAlerts" : "arn:aws:sqs:us-east-1:359896532639:eis-ebso-alerts",
+            "EbsoEmailAlerts" : "des.sdc.customer.apps.team@autodesk.com",
+            "ADPBUCKETFROM":"com.autodesk.adp.prd.us-west-1.green",
+            "ADPBUCKETTO":"com.autodesk.adp.prd.us-west-1.gld.enrichment",
+            "DAPBUCKETFROM":"com.autodesk.adp.prd.us-west-1.gld.enrichment",
+            "DAPBUCKETTO":"com.autodesk.dap.prd.us-east-1.enrichment",
+            "EWSDETAILS":"optimized/account/account_health_ews_detail/",
+            "EWSSUMMARY":"optimized/account/account_health_ews_summary/",
+            "MAUDETAILS":"optimized/desktop_product_usage/monthly_active_users_by_site_account/",
+            "MAUSUMMARY":"optimized/desktop_product_usage/monthly_active_users_by_parent_account/",
+            "NPSDETAILS":"optimized/account/account_health_nps_detail/",
+            "NPSSUMMARY":"optimized/account/account_health_nps_summary/",
+            "DAPEWSDETAILS":"export/Salesforce/optimized/account/account_health_ews_detail/",
+            "DAPEWSSUMMARY":"export/Salesforce/optimized/account/account_health_ews_summary/",
+            "DAPMAUDETAILS":"export/Salesforce/optimized/desktop_product_usage/monthly_active_users_by_site_account/",
+            "DAPMAUSUMMARY":"export/Salesforce/optimized/desktop_product_usage/monthly_active_users_by_parent_account/",
+            "DAPNPSDETAILS":"export/Salesforce/optimized/account/account_health_nps_detail/",
+            "DAPNPSSUMMARY":"export/Salesforce/optimized/account/account_health_nps_summary/",
+            "PREFIX":"export/Salesforce/",
+            "DAPPREFIX":""
+          }
+  }
+},
+  "Resources": {
+    "dapdatasync": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "FunctionName":"dap-scores-data-sync",
+        "Handler": "lambda_function.lambda_handler",
+        "Runtime": "python2.7",
+        "Code": {
+          "S3Bucket": {"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "CodeBucketName"]},
+          "S3Key": {"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "CodeKey"]}
+        },
+        "Description": "publish data from ADP green to gold bucket",
+        "MemorySize": 3008,
+        "Timeout": 300,
+        "ReservedConcurrentExecutions": 10,
+        "Role": { "Fn::GetAtt": ["DAPExecutionRole", "Arn"] },
+        "Environment":{
+          "Variables": {
+          "BUCKET_FROM":{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "DAPBUCKETFROM"]},
+          "BUCKET_TO":{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "DAPBUCKETTO"]},
+          "EWSDETAILS":{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "DAPEWSDETAILS"]},
+          "EWSSUMMARY":{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "DAPEWSSUMMARY"]},
+          "MAUDETAILS":{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "DAPMAUDETAILS"]},
+          "MAUSUMMARY":{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "DAPMAUSUMMARY"]},
+          "NPSDETAILS":{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "DAPNPSDETAILS"]},
+          "NPSSUMMARY":{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "DAPNPSSUMMARY"]},
+          "PREFIX":{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "DAPPREFIX"]}
+          }
+        }
+      }
+    },
+    "adpdatasync": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "FunctionName":"adp-scores-data-sync",
+        "Handler": "lambda_function.lambda_handler",
+        "Runtime": "python2.7",
+        "Code": {
+          "S3Bucket": {"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "CodeBucketName"]},
+          "S3Key": {"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "CodeKey"]}
+        },
+        "Description": "publish data from ADP in DAP account",
+        "MemorySize": 3008,
+        "Timeout": 300,
+        "ReservedConcurrentExecutions": 10,
+        "Role": { "Fn::GetAtt": ["DAPExecutionRole", "Arn"] },
+        "Environment":{
+          "Variables": {
+          "BUCKET_FROM":{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "ADPBUCKETFROM"]},
+          "BUCKET_TO":{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "ADPBUCKETTO"]},
+          "EWSDETAILS":{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "EWSDETAILS"]},
+          "EWSSUMMARY":{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "EWSSUMMARY"]},
+          "MAUDETAILS":{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "MAUDETAILS"]},
+          "MAUSUMMARY":{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "MAUSUMMARY"]},
+          "NPSDETAILS":{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "NPSDETAILS"]},
+          "NPSSUMMARY":{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "NPSSUMMARY"]},
+          "PREFIX":{"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "PREFIX"]}
+          }
+        }
+      }
+    },
+    "EWSRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "EWSRule",
+        "Description": "Extract Runs Every day",
+        "ScheduleExpression": "cron(0 0 * * ? *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": { "Fn::GetAtt": ["adpdatasync", "Arn"] },
+            "Id": "EWSExtract",
+            "Input" : "{ \"score\": \"ews\"}"
+          }
+        ]
+      }
+    },
+    "MAURule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "MAURule",
+        "Description": "Extract Runs Every day",
+        "ScheduleExpression": "cron(0 0 * * ? *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": { "Fn::GetAtt": ["adpdatasync", "Arn"] },
+            "Id": "MAUExtract",
+            "Input" : "{ \"score\": \"mau\"}"
+          }
+        ]
+      }
+    },
+    "NPSRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "NPSRule",
+        "Description": "Extract Runs Every day",
+        "ScheduleExpression": "cron(0 0 * * ? *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": { "Fn::GetAtt": ["adpdatasync", "Arn"] },
+            "Id": "NPSExtract",
+            "Input" : "{ \"score\": \"nps\"}"
+          }
+        ]
+      }
+    },
+    "PermissionForEWSRuleToInvokeLambda": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "adpdatasync"
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "events.amazonaws.com",
+        "SourceArn": { "Fn::GetAtt": ["EWSRule", "Arn"] },
+      }
+    },
+    "PermissionForNPSRelationShipRuleToInvokeLambda": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "adpdatasync"
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "events.amazonaws.com",
+        "SourceArn": { "Fn::GetAtt": ["NPSRule", "Arn"] },
+      }
+    },
+    "PermissionForMAURuleToInvokeLambda": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "adpdatasync"
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "events.amazonaws.com",
+        "SourceArn": { "Fn::GetAtt": ["MAURule", "Arn"] },
+      }
+    },
+    "DAPEWSRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "DAPEWSRule",
+        "Description": "Extract Runs Every day",
+        "ScheduleExpression": "cron(0/30 0 * * ? *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": { "Fn::GetAtt": ["dapdatasync", "Arn"] },
+            "Id": "DAPEWSExtract",
+            "Input" : "{ \"score\": \"ews\"}"
+          }
+        ]
+      }
+    },
+    "DAPMAURule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "DAPMAURule",
+        "Description": "Extract Runs Every day",
+        "ScheduleExpression": "cron(0/30 0 * * ? *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": { "Fn::GetAtt": ["dapdatasync", "Arn"] },
+            "Id": "DAPMAUExtract",
+            "Input" : "{ \"score\": \"mau\"}"
+          }
+        ]
+      }
+    },
+    "DAPNPSRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "DAPNPSRule",
+        "Description": "Extract Runs Every day",
+        "ScheduleExpression": "cron(0/30 0 * * ? *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": { "Fn::GetAtt": ["dapdatasync", "Arn"] },
+            "Id": "DAPNPSExtract",
+            "Input" : "{ \"score\": \"nps\"}"
+          }
+        ]
+      }
+    },
+    "PermissionForDAPEWSRuleToInvokeLambda": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "dapdatasync"
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "events.amazonaws.com",
+        "SourceArn": { "Fn::GetAtt": ["DAPEWSRule", "Arn"] },
+      }
+    },
+    "PermissionForDAPNPSRelationShipRuleToInvokeLambda": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "dapdatasync"
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "events.amazonaws.com",
+        "SourceArn": { "Fn::GetAtt": ["DAPNPSRule", "Arn"] },
+      }
+    },
+    "PermissionForDAPMAURuleToInvokeLambda": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "dapdatasync"
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "events.amazonaws.com",
+        "SourceArn": { "Fn::GetAtt": ["DAPMAURule", "Arn"] },
+      }
+    },
+    "DAPExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "dap-lambda-execution",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/AWSLambdaExecute"
+        ],
+        "Policies": [
+          {
+            "PolicyName": "dap-policy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:PutObject",
+                    "s3:PutObjectAcl",
+                    "s3:GetObject",
+                    "s3:GetObjectAcl",
+                    "s3:ListBucket",
+                    "s3:ListObjects",
+                    "logs:PutLogEvents",
+                    "logs:DescribeLogStreams",
+                    "s3:DeleteObject"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "AlarmTopic" : {
+          "Type" : "AWS::SNS::Topic",
+          "Properties" : {
+            "DisplayName" : "dap-data-sync",
+            "Subscription" : [
+              {"Endpoint" : {"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "EbsoAlerts"]},"Protocol" : "sqs"},
+              {"Endpoint" : {"Fn::FindInMap" : ["Environments", { "Ref" : "Environment"}, "EbsoEmailAlerts"]},"Protocol" : "Email"}
+            ],
+            "TopicName" : "dap-data-sync"
+          }
+        },
+    "LambdaErrorAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Impact:3, Urgency=2, CI=Heroku, Group=DES Web Ops",
+        "AlarmActions": [
+          { "Ref" : "AlarmTopic" }
+        ],
+        "AlarmName": "Enrichment Data Sync from Green to Gold bucket",
+        "MetricName": "Errors",
+        "Namespace": "AWS/Lambda",
+        "Statistic": "Sum",
+        "Period": "86400",
+        "EvaluationPeriods": "1",
+        "Threshold": "1",
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": "adpdatasync"
+          }
+        ]
+      }
+    },
+     "DAPLambdaErrorAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Impact:3, Urgency=2, CI=Heroku, Group=DES Web Ops",
+        "AlarmActions": [
+          { "Ref" : "AlarmTopic" }
+        ],
+        "AlarmName": "Enrichment Data Sync to DAP",
+        "MetricName": "Errors",
+        "Namespace": "AWS/Lambda",
+        "Statistic": "Sum",
+        "Period": "86400",
+        "EvaluationPeriods": "1",
+        "Threshold": "1",
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "Dimensions": [
+          {
+            "Name": "FunctionName",
+            "Value": "dapdatasync"
+          }
+        ]
+      }
+    }
+  }
+}

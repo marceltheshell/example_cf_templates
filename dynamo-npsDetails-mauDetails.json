@@ -1,0 +1,65 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Resources" : {
+    "npsDetailsDb" : {
+      "Type" : "AWS::DynamoDB::Table",
+      "Properties" : {
+        "AttributeDefinitions" : [
+          {
+            "AttributeName" : "corporate_parent_uuid_csn_static",
+            "AttributeType" : "S"
+          },
+          {
+            "AttributeName" : "dateLoaded",
+            "AttributeType" : "S"
+          }
+        ],
+        "KeySchema" : [
+          {
+            "AttributeName" : "corporate_parent_uuid_csn_static",
+            "KeyType" : "HASH"
+          },
+          {
+            "AttributeName" : "dateLoaded",
+            "KeyType" : "RANGE"
+          }
+        ],
+        "ProvisionedThroughput" : {
+          "ReadCapacityUnits" : "5",
+          "WriteCapacityUnits" : "5"
+        },
+        "TableName" : "npsDetails"
+      }
+    },
+    "mauDetailsDb" : {
+      "Type" : "AWS::DynamoDB::Table",
+      "Properties" : {
+        "AttributeDefinitions" : [
+          {
+            "AttributeName" : "corporate_parent_uuid_csn_static",
+            "AttributeType" : "S"
+          },
+          {
+            "AttributeName" : "dateLoaded",
+            "AttributeType" : "S"
+          }
+        ],
+        "KeySchema" : [
+          {
+            "AttributeName" : "corporate_parent_uuid_csn_static",
+            "KeyType" : "HASH"
+          },
+          {
+            "AttributeName" : "dateLoaded",
+            "KeyType" : "RANGE"
+          }
+        ],
+        "ProvisionedThroughput" : {
+          "ReadCapacityUnits" : "5",
+          "WriteCapacityUnits" : "5"
+        },
+        "TableName" : "mauDetails"
+      }
+    }
+  }
+}
